@@ -1,39 +1,57 @@
-﻿int[][][] schedule = BuildTournamentSchedule(6);
+﻿using System.Diagnostics;
+
+Stopwatch sw = Stopwatch.StartNew();
+int numberOfTeams = 4;
+int[][][] schedule = BuildTournamentSchedule(numberOfTeams);
+sw.Stop();
+Console.WriteLine($"Build schedule of {numberOfTeams} teams in {sw.ElapsedMilliseconds}ms. Press any key to print the schedule...");
+Console.ReadKey();
 Print(schedule);
 
 static int[][][] BuildTournamentSchedule(int numberOfTeams)
 {
-    int[] teams = Enumerable.Range(1, numberOfTeams).ToArray();
-
     int numberOfMatchesPerRound = numberOfTeams / 2;
     int numberOfRounds = numberOfTeams - 1;
     int[][][] schedule = new int[numberOfRounds][][];
 
-    for (int round = 0; round < schedule.Length; round++)
+    if (numberOfTeams < 5000)
     {
-        schedule[round] = new int[numberOfMatchesPerRound][];
-
-        for (int match = 0; match < schedule[round].Length; match++)
+        for (int round = 0; round < schedule.Length; round++)
         {
-            schedule[round][match] = new int[] { teams[match], teams[numberOfTeams - 1 - match] };
-        }
+            schedule[round] = new int[numberOfMatchesPerRound][];
 
-        RotateTeamsClockwise(teams);
+            for (int match = 0; match < schedule[round].Length; match++)
+            {
+                schedule[round][match] = GetTeamNumbers(numberOfTeams, round, match);
+            }
+        }
+    }
+    else
+    {
+        _ = Parallel.For(0, numberOfRounds, round =>
+        {
+            schedule[round] = new int[numberOfMatchesPerRound][];
+
+            _ = Parallel.For(0, numberOfMatchesPerRound, match =>
+            {
+                schedule[round][match] = GetTeamNumbers(numberOfTeams, round, match);
+            });
+        });
     }
 
     return schedule;
 }
 
-static void RotateTeamsClockwise(int[] teams)
+static int[] GetTeamNumbers(int numberOfTeams, int round, int match)
 {
-    int lastTeam = teams[^1];
+    // These are the formulas that simulates clockwise rotation of teams array.
+    // I made it this way to get rid of teams array and clockwise rotation method. So I could parallelize.
+    int team1 = (round == 0 || match == 0 ? match : ((numberOfTeams - round - 2 + match) % (numberOfTeams - 1)) + 1) + 1;
 
-    for (int i = teams.Length - 1; 1 < i; i--)
-    {
-        teams[i] = teams[i - 1];
-    }
+    int mod = (numberOfTeams - round - 2 - match) % (numberOfTeams - 1);
+    int team2 = (mod < 0 ? mod + numberOfTeams - 1 : mod) + 2;
 
-    teams[1] = lastTeam;
+    return new[] { team1, team2 };
 }
 
 static void Print(int[][][] schedule)
