@@ -6,21 +6,20 @@ int[][][] schedule = BuildTournamentSchedule(numberOfTeams);
 sw.Stop();
 Console.WriteLine($"Build schedule of {numberOfTeams} teams in {sw.ElapsedMilliseconds}ms. Press any key to print the schedule...");
 Console.ReadKey();
+Console.WriteLine();
 Print(schedule);
 
 static int[][][] BuildTournamentSchedule(int numberOfTeams)
 {
     int numberOfMatchesPerRound = numberOfTeams / 2;
     int numberOfRounds = numberOfTeams - 1;
-    int[][][] schedule = new int[numberOfRounds][][];
+    int[][][] schedule = InitializeSchedule(numberOfRounds, numberOfMatchesPerRound);
 
     if (numberOfTeams < 5000)
     {
-        for (int round = 0; round < schedule.Length; round++)
+        for (int round = 0; round < numberOfRounds; round++)
         {
-            schedule[round] = new int[numberOfMatchesPerRound][];
-
-            for (int match = 0; match < schedule[round].Length; match++)
+            for (int match = 0; match < numberOfMatchesPerRound; match++)
             {
                 schedule[round][match] = GetTeamNumbers(numberOfTeams, round, match);
             }
@@ -30,13 +29,23 @@ static int[][][] BuildTournamentSchedule(int numberOfTeams)
     {
         _ = Parallel.For(0, numberOfRounds, round =>
         {
-            schedule[round] = new int[numberOfMatchesPerRound][];
-
-            _ = Parallel.For(0, numberOfMatchesPerRound, match =>
+            for (int match = 0; match < numberOfMatchesPerRound; match++)
             {
                 schedule[round][match] = GetTeamNumbers(numberOfTeams, round, match);
-            });
+            }
         });
+    }
+
+    return schedule;
+}
+
+static int[][][] InitializeSchedule(int numberOfRounds, int numberOfMatchesPerRound)
+{
+    int[][][] schedule = new int[numberOfRounds][][];
+
+    for (int round = 0; round < numberOfRounds; round++)
+    {
+        schedule[round] = new int[numberOfMatchesPerRound][];
     }
 
     return schedule;
